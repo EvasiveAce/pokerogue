@@ -1428,7 +1428,7 @@ export class SwitchSummonPhase extends SummonPhase {
     if (this.batonPass && pokemon)
       pokemon.transferSummon(this.lastPokemon);
 
-    this.lastPokemon?.resetSummonData();
+    this.lastPokemon.resetSummonData();
 
     this.scene.triggerPokemonFormChange(pokemon, SpeciesFormChangeActiveTrigger, true);
   }
