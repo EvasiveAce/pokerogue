@@ -1861,6 +1861,34 @@ export class SwapStatsAttr extends MoveEffectAttr
     }
 }
 
+/**
+ * Attribute used for moves which swap the user and the target's speed.
+ */
+export class SwapSpeedAttr extends MoveEffectAttr
+{
+    /**
+   * Swaps the user and the target's stat changes.
+   * @param user Pokemon that used the move
+   * @param target The target of the move
+   * @param move Move with this attribute
+   * @param args N/A
+   * @returns true if the function succeeds
+   */
+    apply(user: Pokemon, target: Pokemon, move: Move, args: any []): boolean
+    {
+        if (!super.apply(user, target, move, args))
+            return false; //Exits if the move can't apply
+        let priorBoost : integer = user.getStat[4]; //For storing speed stat
+        user.stats[4] = target.getStat[4]; //Applies target boost to self
+        target.stats[4] = priorBoost; //Applies stored boost to target
+
+        target.updateInfo();
+        user.updateInfo();
+        target.scene.queueMessage(getPokemonMessage(user, ' switched speed stats with the target!'));
+        return true;
+    }
+}
+
 export class HpSplitAttr extends MoveEffectAttr {
   apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): Promise<boolean> {
     return new Promise(resolve => {
@@ -6126,7 +6154,7 @@ export function initMoves() {
         user.scene.queueMessage(getPokemonMessage(user, ` burned itself out!`));
       }),
     new StatusMove(Moves.SPEED_SWAP, Type.PSYCHIC, -1, 10, -1, 0, 7)
-      .unimplemented(),
+      .attr(SwapSpeedAttr),
     new AttackMove(Moves.SMART_STRIKE, Type.STEEL, MoveCategory.PHYSICAL, 70, -1, 10, -1, 0, 7),
     new StatusMove(Moves.PURIFY, Type.POISON, -1, 20, -1, 0, 7)
       .triageMove()
