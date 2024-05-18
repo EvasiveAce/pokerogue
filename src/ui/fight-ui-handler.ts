@@ -23,6 +23,9 @@ export default class FightUiHandler extends UiHandler {
   private cursorObj: Phaser.GameObjects.Image;
   private moveCategoryIcon: Phaser.GameObjects.Sprite;
   private moveEffectivenessIcon: Phaser.GameObjects.Sprite;
+  private moveEffectivenessIcon1: Phaser.GameObjects.Sprite;
+  private moveEffectivenessIcon2: Phaser.GameObjects.Sprite;
+  private moveEffectivenessIcon3: Phaser.GameObjects.Sprite;
 
   protected fieldIndex: integer = 0;
   protected cursor2: integer = 0;
@@ -45,9 +48,21 @@ export default class FightUiHandler extends UiHandler {
     this.moveCategoryIcon.setVisible(false);
     ui.add(this.moveCategoryIcon);
 
-    this.moveEffectivenessIcon = this.scene.add.sprite((this.scene.game.canvas.width / 6) - 25, -36, 'moveEffectiveness', 'positive');
+    this.moveEffectivenessIcon = this.scene.add.sprite((this.scene.game.canvas.width / 6) - 245, -30, 'moveEffectiveness', '');
     this.moveEffectivenessIcon.setVisible(false);
     ui.add(this.moveEffectivenessIcon);
+
+    this.moveEffectivenessIcon1 = this.scene.add.sprite((this.scene.game.canvas.width / 6) - 75, -36, 'moveEffectiveness', '');
+    this.moveEffectivenessIcon1.setVisible(false);
+    ui.add(this.moveEffectivenessIcon1);
+
+    this.moveEffectivenessIcon2 = this.scene.add.sprite((this.scene.game.canvas.width / 6) - 50, -36, 'moveEffectiveness', '');
+    this.moveEffectivenessIcon2.setVisible(false);
+    ui.add(this.moveEffectivenessIcon2);
+
+    this.moveEffectivenessIcon3 = this.scene.add.sprite((this.scene.game.canvas.width / 6) - 55, -36, 'moveEffectiveness', '');
+    this.moveEffectivenessIcon3.setVisible(false);
+    ui.add(this.moveEffectivenessIcon3);
 
     this.ppLabel = addTextObject(this.scene, (this.scene.game.canvas.width / 6) - 70, -26, 'PP', TextStyle.MOVE_INFO_CONTENT);
     this.ppLabel.setOrigin(0.0, 0.5);
@@ -169,7 +184,7 @@ export default class FightUiHandler extends UiHandler {
       const pokemonMove = moveset[cursor];
       this.typeIcon.setTexture('types', Type[pokemonMove.getMove().type].toLowerCase()).setScale(0.8);
       this.moveCategoryIcon.setTexture('categories', MoveCategory[pokemonMove.getMove().category].toLowerCase()).setScale(1.0);
-      this.moveEffectivenessIcon.setTexture('moveEffectiveness', HitResult[this.scene.getEnemyPokemon().getAttackMoveEffectiveness(this.scene.getPlayerPokemon(), pokemonMove)].toLowerCase()).setScale(0.8)
+      //this.moveEffectivenessIcon.setTexture('moveEffectiveness', HitResult[this.scene.getEnemyPokemon().getAttackMoveEffectiveness(this.scene.getPlayerPokemon(), pokemonMove)].toLowerCase()).setScale(1.0)
 
       const power = pokemonMove.getMove().power;
       const accuracy = pokemonMove.getMove().accuracy;
@@ -189,7 +204,6 @@ export default class FightUiHandler extends UiHandler {
     this.accuracyLabel.setVisible(hasMove);
     this.accuracyText.setVisible(hasMove);
     this.moveCategoryIcon.setVisible(hasMove);
-    this.moveEffectivenessIcon.setVisible(hasMove);
 
     this.cursorObj.setPosition(13 + (cursor % 2 === 1 ? 100 : 0), -31 + (cursor >= 2 ? 15 : 0));
 
@@ -199,12 +213,29 @@ export default class FightUiHandler extends UiHandler {
 
   displayMoves() {
     const moveset = (this.scene.getCurrentPhase() as CommandPhase).getPokemon().getMoveset();
+    const iconArray = [this.moveEffectivenessIcon, this.moveEffectivenessIcon1, this.moveEffectivenessIcon2, this.moveEffectivenessIcon3]
     for (let m = 0; m < 4; m++) {
-      const effectiveness = this.scene.getEnemyPokemon().getAttackMoveEffectiveness(this.scene.getPlayerPokemon(), moveset[m]);
+      //const effectiveness = this.scene.getEnemyPokemon().getAttackMoveEffectiveness(this.scene.getPlayerPokemon(), moveset[m]);
       const moveText = addTextObject(this.scene, m % 2 === 0 ? 0 : 100, m < 2 ? 0 : 16, '-', TextStyle.WINDOW);
-      moveText.active
       if (m < moveset.length)
         moveText.setText(moveset[m].getName());
+        const result = this.scene.getEnemyPokemon().getAttackMoveEffectiveness(this.scene.getPlayerPokemon(), moveset[m])
+        switch(result) {
+          case 0.5:
+            iconArray[m].setTexture('moveEffectiveness', 'not_very_effective').setScale(1)
+            iconArray[m].setVisible(true);
+            break;
+          case 1:
+            iconArray[m].setTexture('moveEffectiveness', 'effective').setScale(1)
+            iconArray[m].setVisible(true);
+            break;
+          case 0.5:
+            iconArray[m].setTexture('moveEffectiveness', 'super_effective').setScale(1)
+            iconArray[m].setVisible(true);
+            break;
+        }
+        //iconArray[m].setTexture('moveEffectiveness', ].toLowerCase()).setScale(1.0)
+
       this.movesContainer.add(moveText);
     }
   }
@@ -221,6 +252,9 @@ export default class FightUiHandler extends UiHandler {
     this.accuracyText.setVisible(false);
     this.moveCategoryIcon.setVisible(false);
     this.moveEffectivenessIcon.setVisible(false);
+    this.moveEffectivenessIcon1.setVisible(false);
+    this.moveEffectivenessIcon2.setVisible(false);
+    this.moveEffectivenessIcon3.setVisible(false);
     this.eraseCursor();
   }
 
