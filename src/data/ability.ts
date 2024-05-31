@@ -168,6 +168,11 @@ export class PostBattleInitAbAttr extends AbAttr {
   }
 }
 
+export class ForceSwitchOutAbAttr extends AbAttr {
+
+}
+
+
 export class PostBattleInitFormChangeAbAttr extends PostBattleInitAbAttr {
   private formFunc: (p: Pokemon) => integer;
 
@@ -4033,7 +4038,7 @@ export function initAbilities() {
     new Ability(Abilities.STAMINA, 7)
       .attr(PostDefendStatChangeAbAttr, (target, user, move) => move.category !== MoveCategory.STATUS, BattleStat.DEF, 1),
     new Ability(Abilities.WIMP_OUT, 7)
-      .unimplemented(),
+      .attr(ForceSwitchOutAbAttr),
     new Ability(Abilities.EMERGENCY_EXIT, 7)
       .unimplemented(),
     new Ability(Abilities.WATER_COMPACTION, 7)
