@@ -168,11 +168,6 @@ export class PostBattleInitAbAttr extends AbAttr {
   }
 }
 
-export class ForceSwitchOutAbAttr extends AbAttr {
-
-}
-
-
 export class PostBattleInitFormChangeAbAttr extends PostBattleInitAbAttr {
   private formFunc: (p: Pokemon) => integer;
 
@@ -237,6 +232,7 @@ export class PreDefendAbAttr extends AbAttr {
     return false;
   }
 }
+
 
 export class PreDefendFormChangeAbAttr extends PreDefendAbAttr {
   private formFunc: (p: Pokemon) => integer;
@@ -458,6 +454,15 @@ export class NonSuperEffectiveImmunityAbAttr extends TypeImmunityAbAttr {
 export class PostDefendAbAttr extends AbAttr {
   applyPostDefend(pokemon: Pokemon, passive: boolean, attacker: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): boolean | Promise<boolean> {
     return false;
+  }
+}
+
+export class ForceSwitchOutAbAttr extends PostDefendAbAttr {
+  applyPostDefend(pokemon: Pokemon, passive: boolean, attacker: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): boolean | Promise<boolean> {
+    if (pokemon.getHpRatio() <= .50) {
+
+    }
+    return true;
   }
 }
 
