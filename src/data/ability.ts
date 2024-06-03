@@ -1,8 +1,8 @@
-import Pokemon, { HitResult, PokemonMove } from "../field/pokemon";
+import Pokemon, { EnemyPokemon, HitResult, PlayerPokemon, PokemonMove } from "../field/pokemon";
 import { Type } from "./type";
 import * as Utils from "../utils";
 import { BattleStat, getBattleStatName } from "./battle-stat";
-import { MovePhase, PokemonHealPhase, ShowAbilityPhase, StatChangePhase } from "../phases";
+import { BattleEndPhase, MovePhase, NewBattlePhase, PokemonHealPhase, ShowAbilityPhase, StatChangePhase, SwitchSummonPhase } from "../phases";
 import { getPokemonMessage, getPokemonPrefix } from "../messages";
 import { Weather, WeatherType } from "./weather";
 import { BattlerTag } from "./battler-tags";
@@ -16,7 +16,7 @@ import { Stat } from "./pokemon-stat";
 import { BerryModifier, PokemonHeldItemModifier } from "../modifier/modifier";
 import { Moves } from "./enums/moves";
 import { TerrainType } from "./terrain";
-import { SpeciesFormChangeManualTrigger } from "./pokemon-forms";
+import { SpeciesFormChangeActiveTrigger, SpeciesFormChangeManualTrigger } from "./pokemon-forms";
 import { Abilities } from "./enums/abilities";
 import i18next, { Localizable } from "#app/plugins/i18n.js";
 import { Command } from "../ui/command-ui-handler";
@@ -457,12 +457,91 @@ export class PostDefendAbAttr extends AbAttr {
   }
 }
 
+type AbilityConditionFunc = (pokemon: Pokemon, attacker: Pokemon, move: PokemonMove) => boolean;
+
 export class ForceSwitchOutAbAttr extends PostDefendAbAttr {
   applyPostDefend(pokemon: Pokemon, passive: boolean, attacker: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): boolean | Promise<boolean> {
-    if (pokemon.getHpRatio() <= .50) {
+    if (pokemon.hp) {
+      return new Promise(resolve => {
 
+        if (!this.getSwitchOutCondition()(pokemon, attacker, move)) {
+          return resolve(false);
+        }
+
+        // Move the switch out logic inside the conditional block
+        // This ensures that the switch out only happens when the conditions are met
+        const switchOutTarget = pokemon ? pokemon : attacker;
+        if (switchOutTarget instanceof PlayerPokemon) {
+          if (switchOutTarget.getHpRatio() <= .50) {
+            applyPreSwitchOutAbAttrs(PreSwitchOutAbAttr, switchOutTarget);
+            (switchOutTarget as PlayerPokemon).forceSwitchOut(true).then(() => resolve(true));
+            //console.log(pokemon.scene.unshiftPhase(new SwitchSummonPhase(pokemon.scene, pokemon.getFieldIndex(), 1, false, false, false)));
+          } else {
+            resolve(false);
+          }
+          return;
+        } else if (pokemon.scene.currentBattle.battleType) {
+          this.showAbility = false;
+          if (switchOutTarget.getHpRatio() <= .50) {
+            this.showAbility = true;
+            // Switch out logic for the battle type
+            switchOutTarget.resetTurnData();
+            switchOutTarget.resetSummonData();
+            switchOutTarget.hideInfo();
+            switchOutTarget.setVisible(false);
+            switchOutTarget.scene.field.remove(switchOutTarget);
+            pokemon.scene.triggerPokemonFormChange(switchOutTarget, SpeciesFormChangeActiveTrigger, true);
+
+            if (switchOutTarget.hp) {
+              pokemon.scene.unshiftPhase(new SwitchSummonPhase(pokemon.scene, switchOutTarget.getFieldIndex(), pokemon.scene.currentBattle.trainer.getNextSummonIndex((switchOutTarget as EnemyPokemon).trainerSlot), false, false, false));
+            }
+          }
+        } else {
+          this.showAbility = false;
+          if (switchOutTarget.getHpRatio() <= .50) {
+            switchOutTarget.setVisible(false);
+            this.showAbility = true;
+            if (switchOutTarget.hp) {
+              switchOutTarget.hideInfo().then(() => switchOutTarget.destroy());
+              switchOutTarget.scene.field.remove(switchOutTarget);
+              pokemon.scene.queueMessage(getPokemonMessage(switchOutTarget, " fled!"), null, true, 500);
+            }
+
+            if (!switchOutTarget.getAlly()?.isActive(true)) {
+              pokemon.scene.clearEnemyHeldItemModifiers();
+
+              if (switchOutTarget.getHpRatio() <= .50) {
+                pokemon.scene.pushPhase(new BattleEndPhase(pokemon.scene));
+                pokemon.scene.pushPhase(new NewBattlePhase(pokemon.scene));
+              }
+            }
+          }
+        }
+        resolve(true);
+      });
     }
     return true;
+  }
+
+  getSwitchOutCondition(): AbilityConditionFunc {
+    return (pokemon, attacker, move) => {
+      const switchOutTarget = (pokemon ? pokemon : attacker);
+      const player = switchOutTarget instanceof PlayerPokemon;
+
+      if (!pokemon && (attacker.hasAbilityWithAttr(ForceSwitchOutImmunityAbAttr) || attacker.isMax())) {
+        return false;
+      }
+
+      if (!player && !pokemon.scene.currentBattle.battleType) {
+        // Don't allow wild opponents to flee on the boss stage since it can ruin a run early on
+        if (!(pokemon.scene.currentBattle.waveIndex % 10)) {
+          return false;
+        }
+      }
+
+      const party = player ? pokemon.scene.getParty() : pokemon.scene.getEnemyParty();
+      return (!player && !pokemon.scene.currentBattle.battleType) || party.filter(p => !p.isFainted() && (player || (p as EnemyPokemon).trainerSlot === (switchOutTarget as EnemyPokemon).trainerSlot)).length > pokemon.scene.currentBattle.getBattlerCount();
+    };
   }
 }
 
